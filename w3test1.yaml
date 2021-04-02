@@ -1,22 +1,25 @@
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: ConfigMap
 metadata:
-  name: w3test1-data
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 2Gi
+  name: autoresponder
+  namespace: default
+data:
+  index.php: |
+    <?php http_response_code(basename($_SERVER["REQUEST_URI"])); echo http_response_code();?>
+  auto.php: |
+    <?php for ($i=0;$i<1000;$i++) {
+     $a=$_SERVER['HTTP_X_SCHEME']."://".$_SERVER['SERVER_NAME'].dirname($_SERVER["REQUEST_URI"])."/";
+     echo "#".(1000-$i).": ".$a." ".@file_get_contents($a)."<br>"; flush();
+     usleep(100000);
+    }?>
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-  labels:
-    app: w3test1
   name: w3test1
   namespace: default
+  labels:
+    app: w3test1
 spec:
   replicas: 1
   selector:
@@ -31,16 +34,25 @@ spec:
       - image: php:8-apache-buster
         name: php-1
         volumeMounts:
-        - mountPath: /var/www/html
-          name: www
+        - mountPath: /var/www/html/w3test1/100
+          name: autoresponder
+        - mountPath: /var/www/html/w3test1/200
+          name: autoresponder
+        - mountPath: /var/www/html/w3test1/300
+          name: autoresponder
+        - mountPath: /var/www/html/w3test1/400
+          name: autoresponder
+        - mountPath: /var/www/html/w3test1/500
+          name: autoresponder
       volumes:
-      - name: www
-        persistentVolumeClaim:
-          claimName: w3test1-data
+      - configMap:
+          name: autoresponder
+        name: autoresponder
 ---
 apiVersion: v1
 kind: Service
-  name: svc-w3test1
+metadata:
+  name: service-w3test1
   namespace: default
 spec:
   ports:
@@ -53,16 +65,15 @@ spec:
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
+  name: ingress-w3test1
+  namespace: default
   annotations:
     kubernetes.io/ingress.class: nginx
-  name: ingress-grafana
-  namespace: default
 spec:
   rules:
-  - host: 35.224.24.249.xip.io
-    http:
+  - http:
       paths:
       - backend:
-          serviceName: svc-w3test1
+          serviceName: service-w3test1
           servicePort: 80
         path: /w3test1
