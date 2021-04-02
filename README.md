@@ -19,3 +19,5 @@ kubectl apply -f https://github.com/cfenyev/dp32/raw/main/w3test1.yaml
 #### Создание нагрузки:
 [http://35.224.24.249.xip.io/w3test1/_**{HTTP CODE}**_/auto.php]()\
 сейчас доступны коды 100,200,300,400,500
+#### Публикация мониторинга (сейчас Grafana, можно поменять на Prometheus):
+````kubectl apply -f https://github.com/cfenyev/dp32/raw/main/monitoring-ext.yaml````
